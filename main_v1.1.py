@@ -172,7 +172,7 @@ def encode(ui: UI):
     
     try:
         with open(Config.file_path, mode="rb") as f:
-            data_rb = bytearray(f.read())
+            data_rb: bytearray = bytearray(f.read())
     except Exception as e:
         ui.set_loading_info(f"文件错误：{e}")
         return
@@ -197,9 +197,8 @@ def encode(ui: UI):
         data_rb[:0] = b"\x00" * header_total
         offset: int = 0
         for index, item in enumerate(header_parts):
-            part_len = header_length[index]
-            data_rb[offset:offset + part_len] = item
-            offset += part_len
+            data_rb[offset:offset + header_length[index]] = item
+            offset += header_length[index]
             data_rb[offset:offset + sep_length] = separator
             offset += sep_length
         data_rb.extend(b"\x00" * (target_size - data_rb_length))
