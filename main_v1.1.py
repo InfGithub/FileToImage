@@ -50,7 +50,7 @@ class Tooltip:
         frame = tk.Frame(self.tip_window, relief="solid", borderwidth=1)
         frame.pack()
         
-        tk.Label(frame, text=self.hover_text, justify="left", relief="flat", padx=8, pady=4).pack()
+        tk.Label(frame, text=self.hover_text, justify="left", relief="flat", padx=4, pady=2).pack()
         
         self.adjust_position()
     
@@ -99,7 +99,8 @@ class UI:
         self.root.iconphoto(True, self.icon)
 
         self.ui_init()
-        self.set_loading_info("喵~ 喵~")
+        self.set_loading_info("喵喵喵~")
+        self.tooltip.config(hover_text=">_<")
 
 
     def ui_init(self):
@@ -116,6 +117,8 @@ class UI:
         self.tooltip = Tooltip(self.loading_text)
 
     def set_loading_info(self, text: str):
+        if len(text) >= 30:
+            text: str = f"{text[:30]}..."
         self.loading_text.config(text=text)
 
     def run(self):
