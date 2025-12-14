@@ -23,48 +23,34 @@ def get_sqrt(value: float) -> int:
 
 class Tooltip:
     def __init__(self, widget: tk.Widget, hover_text: str = "", delay: int = 100) -> None:
-        self.widget = widget
-        self.hover_text = hover_text
-        self.delay = delay
+        self.widget, self.hover_text, self.delay = widget, hover_text, delay
         self.tip_window: Optional[tk.Toplevel] = None
         self.tip_id: Optional[str] = None
-        
+
         widget.bind("<Enter>", self.schedule_tip)
         widget.bind("<Leave>", self.hide_tip)
         widget.bind("<ButtonPress>", self.hide_tip)
-    
+
     def schedule_tip(self, event: tk.Event) -> None:
         if not self.hover_text:
             return
         self.tip_id = self.widget.after(self.delay, self.show_tip)
-    
+
     def show_tip(self) -> None:
         if self.tip_window or not self.hover_text:
             return
-        
+
         x = self.widget.winfo_rootx() + 20
         y = self.widget.winfo_rooty() + self.widget.winfo_height() + 5
-        
+
         self.tip_window = tk.Toplevel(self.widget)
         self.tip_window.wm_overrideredirect(True)
         self.tip_window.wm_geometry(f"+{x}+{y}")
-        
-        frame = tk.Frame(
-            self.tip_window,
-            relief="solid",
-            borderwidth=1
-        )
+
+        frame = tk.Frame(self.tip_window, relief="solid", borderwidth=1)
         frame.pack()
         
-        label = tk.Label(
-            frame,
-            text=self.hover_text,
-            justify="left",
-            relief="flat",
-            padx=8,
-            pady=4
-        )
-        label.pack()
+        tk.Label(frame, text=self.hover_text, justify="left", relief="flat", padx=8, pady=4).pack()
         
         self.adjust_position()
     
@@ -75,8 +61,7 @@ class Tooltip:
         self.tip_window.update_idletasks()
         width = self.tip_window.winfo_width()
         height = self.tip_window.winfo_height()
-        x = self.tip_window.winfo_x()
-        y = self.tip_window.winfo_y()
+        x, y = self.tip_window.winfo_x(), self.tip_window.winfo_y()
         
         screen_width = self.tip_window.winfo_screenwidth()
         screen_height = self.tip_window.winfo_screenheight()
