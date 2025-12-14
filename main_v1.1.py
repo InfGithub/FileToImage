@@ -241,7 +241,6 @@ def decode(ui: UI):
         data_rb_full: bytes = data_rb_flat_arr.tobytes()
         version_rb, filename_rb, data_rb_length_rb, md5_checksum_rb, *data_rb = data_rb_full.split(Config.spliter)
         data_rb: bytes = Config.spliter.join(data_rb)
-        log(data_rb)
 
         ui.set_loading_info("运行进度：正在解析数据。")
         version: tuple[int, int] = get_version_tuple(version_rb.decode("utf-8"))
