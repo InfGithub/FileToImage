@@ -101,10 +101,6 @@ class Tooltip:
             self.hover_text = hover_text
         self.hide_tip()
 
-def bind_tooltip(widget: tk.Widget, hover_text: str = "", delay: int = 100) -> Tooltip:
-    tooltip = Tooltip(widget, hover_text, delay)
-    return tooltip
-
 class UI:
     def __init__(self):
         self.root = tk.Tk()
@@ -132,7 +128,7 @@ class UI:
         self.loading_text = tk.Label(self.root)
         self.loading_text.place(x=10, y=120)
 
-        self.tooltip = bind_tooltip(self.loading_text, "")
+        self.tooltip = Tooltip(self.loading_text)
 
     def set_loading_info(self, text: str):
         self.loading_text.config(text=text)
