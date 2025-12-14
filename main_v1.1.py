@@ -122,8 +122,8 @@ class UI:
 
         tk.Button(self.root, text="选择文件", command=get_file_path).place(x=10, y=40)
         tk.Button(self.root, text="选择目录", command=get_dir_path).place(x=10, y=80)
-        tk.Button(self.root, text="编码", command=lambda: Thread(target=encode, args=[self]).start()).place(x=80, y=40)
-        tk.Button(self.root, text="解码", command=lambda: Thread(target=decode, args=[self]).start()).place(x=80, y=80)
+        tk.Button(self.root, text="编码", command=lambda: Thread(target=encode, args=(self,)).start()).place(x=80, y=40)
+        tk.Button(self.root, text="解码", command=lambda: Thread(target=decode, args=(self,)).start()).place(x=80, y=80)
 
         self.loading_text = tk.Label(self.root)
         self.loading_text.place(x=10, y=120)
