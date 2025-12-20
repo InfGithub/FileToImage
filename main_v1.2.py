@@ -295,7 +295,7 @@ def decode(ui: UI):
         rgba_array: np.ndarray = np.array(image.convert("RGBA"), dtype=np.uint8)
         data_rb_flat_arr: np.ndarray = rgba_array.ravel()
 
-        ui.set_loading_info("运行进度：正在加密数据。")
+        ui.set_loading_info("运行进度：正在解密数据。")
         data_rb_flat_arr = decryption(
             password=password.encode("ascii"),
             data=data_rb_flat_arr, chunk_size=1048576
