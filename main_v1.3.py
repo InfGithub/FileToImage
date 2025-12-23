@@ -388,7 +388,6 @@ def main():
     decode_parser.add_argument("-p", "--password", default="")
 
     args: ArgsType = parser.parse_args()
-    print(args)
 
     if args.command is None:
         ui: UI = GUI()
