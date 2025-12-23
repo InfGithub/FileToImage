@@ -87,7 +87,7 @@ class Tooltip:
         self.hide_tip()
 
 class UI:
-    def __init__(self, password: str):
+    def __init__(self, password: str = ""):
         self.password = password
         self.tooltip = lambda *args: None
         self.tooltip.config = lambda *args: None
@@ -99,6 +99,7 @@ class UI:
 
 class GUI(UI):
     def __init__(self):
+        super.__init__()
         self.root = tk.Tk()
         self.root.title("FileToImage")
         self.root.geometry("250x170+648+648")
