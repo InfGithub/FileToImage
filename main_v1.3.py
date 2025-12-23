@@ -99,7 +99,7 @@ class UI:
 
 class GUI(UI):
     def __init__(self):
-        super.__init__()
+        super().__init__()
         self.root = tk.Tk()
         self.root.title("FileToImage")
         self.root.geometry("250x170+648+648")
