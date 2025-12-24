@@ -21,27 +21,39 @@ def get_version_tuple(version: str) -> tuple[int, int]:
 def get_sqrt(value: float) -> int:
     return ceil(sqrt(value))
 
+class UI:
+    def __init__(self, password: str = ""):
+        self.password: str = password
+
+    def set_loading_info(self, text: str):
+        print(text)
+
+    def set_tooltip_info(self, text: str):
+        ...
+
+    def get_password(self) -> str:
+        return self.password
+
 class Tooltip:
-    def __init__(self, widget: tk.Widget, hover_text: str = "", delay: int = 100) -> None:
+    def __init__(self, widget: tk.Widget, hover_text: str = "", delay: int = 100):
         self.widget, self.hover_text, self.delay = widget, hover_text, delay
-        self.tip_window: Optional[tk.Toplevel] = None
-        self.tip_id: Optional[str] = None
+        self.tip_window, self.tip_id = None, None
 
         widget.bind("<Enter>", self.schedule_tip)
         widget.bind("<Leave>", self.hide_tip)
         widget.bind("<ButtonPress>", self.hide_tip)
 
-    def schedule_tip(self, event: tk.Event) -> None:
+    def schedule_tip(self, event: tk.Event):
         if not self.hover_text:
             return
         self.tip_id = self.widget.after(self.delay, self.show_tip)
 
-    def show_tip(self) -> None:
+    def show_tip(self):
         if self.tip_window or not self.hover_text:
             return
 
-        x = self.widget.winfo_rootx() + 20
-        y = self.widget.winfo_rooty() + self.widget.winfo_height() + 5
+        x: int = self.widget.winfo_rootx() + 20
+        y: int = self.widget.winfo_rooty() + self.widget.winfo_height() + 5
 
         self.tip_window = tk.Toplevel(self.widget)
         self.tip_window.wm_overrideredirect(True)
@@ -51,10 +63,9 @@ class Tooltip:
         frame.pack()
         
         tk.Label(frame, text=self.hover_text, justify="left", relief="flat", padx=4, pady=2).pack()
-        
         self.adjust_position()
     
-    def adjust_position(self) -> None:
+    def adjust_position(self):
         if not self.tip_window:
             return
         
@@ -73,7 +84,7 @@ class Tooltip:
         
         self.tip_window.wm_geometry(f"+{max(0, x)}+{max(0, y)}")
     
-    def hide_tip(self, event: Optional[tk.Event] = None) -> None:
+    def hide_tip(self, event = None):
         if self.tip_window:
             self.tip_window.destroy()
             self.tip_window = None
@@ -81,21 +92,10 @@ class Tooltip:
             self.widget.after_cancel(self.tip_id)
             self.tip_id = None
     
-    def config(self, hover_text: Optional[str] = None) -> None:
+    def config(self, hover_text: str = None):
         if hover_text is not None:
             self.hover_text = hover_text
         self.hide_tip()
-
-class UI:
-    def __init__(self, password: str = ""):
-        self.password = password
-        self.tooltip = lambda *args: None
-        self.tooltip.config = lambda *args: None
-        self.password_entry = lambda *args: None
-        self.password_entry.get = lambda *args: self.password
-
-    def set_loading_info(self, text: str):
-        print(text)
 
 class GUI(UI):
     def __init__(self):
@@ -140,6 +140,12 @@ class GUI(UI):
             text: str = f"{text[:30]}..."
         self.loading_text.config(text=text)
 
+    def set_tooltip_info(self, text: str):
+        self.tooltip.config(hover_text=text)
+
+    def get_password(self) -> str:
+        return self.password_entry.get()
+
     def show_password_check(self):
         self.password_entry.config(show="*" if self.show_password.get() else "")
 
@@ -152,11 +158,11 @@ def get_dir_path():
 def get_file_path():
     Config.file_path = path.normpath(askopenfilename())
 
-def get_path_with_upper_drive(file_path: str):
+def get_path_with_upper_drive(file_path: str) -> str:
     drive, tail = path.splitdrive(file_path)
     return drive.upper() + tail if drive else file_path
 
-def encryption(password: bytes, data: np.ndarray, chunk_size: int = 1048576):
+def encryption(password: bytes, data: np.ndarray, chunk_size: int = 1048576) -> np.ndarray:
 
     salt = urandom(16)
     salt_array = np.frombuffer(salt, dtype=np.uint8)
@@ -171,7 +177,7 @@ def encryption(password: bytes, data: np.ndarray, chunk_size: int = 1048576):
 
     return np.concatenate(result)
 
-def decryption(password: bytes, data: np.ndarray, chunk_size: int = 1048576):
+def decryption(password: bytes, data: np.ndarray, chunk_size: int = 1048576) -> np.ndarray:
     salt, data = data[:16], data[16:]
 
     key = np.frombuffer(sha256(password + salt.tobytes()).digest(), dtype=np.uint8)
@@ -183,8 +189,8 @@ def decryption(password: bytes, data: np.ndarray, chunk_size: int = 1048576):
     return data
 
 def encode(ui: UI):
-    ui.tooltip.config("")
-    password: str = ui.password_entry.get()
+    ui.set_tooltip_info("")
+    password: str = ui.get_password()
 
     if not password.isascii():
         ui.set_loading_info("错误：密钥不得包含非ASCII字符。")
@@ -263,7 +269,7 @@ def encode(ui: UI):
         
         upper_file_path: str = get_path_with_upper_drive(save_file_path)
         ui.set_loading_info(f"编码完成。保存于{upper_file_path}")
-        ui.tooltip.config(upper_file_path)
+        ui.set_tooltip_info(upper_file_path)
         
     except MemoryError as e:
         ui.set_loading_info(f"内存不足：{e}")
@@ -271,8 +277,8 @@ def encode(ui: UI):
         ui.set_loading_info(f"编码错误：{e}")
 
 def decode(ui: UI):
-    ui.tooltip.config("")
-    password: str = ui.password_entry.get()
+    ui.set_tooltip_info("")
+    password: str = ui.get_password()
 
     if not password.isascii():
         ui.set_loading_info("错误：密钥不得包含非ASCII字符。")
@@ -343,7 +349,7 @@ def decode(ui: UI):
 
         upper_file_path: str = get_path_with_upper_drive(save_file_path)
         ui.set_loading_info(f"解码完成。保存于{upper_file_path}")
-        ui.tooltip.config(upper_file_path)
+        ui.set_tooltip_info(upper_file_path)
     except Exception as e:
         ui.set_loading_info(f"编码错误：{e}")
 
@@ -393,18 +399,12 @@ def main():
     if args.command is None:
         ui: UI = GUI()
         ui.run()
-    elif args.command == "encode":
+    elif args.command in ["encode", "decode"]:
         Config.file_path = args.file_path
         if args.output:
             Config.dir_path = args.output
         ui: UI = UI(args.password)
-        encode(ui)
-    elif args.command == "decode":
-        Config.file_path = args.file_path
-        if args.output:
-            Config.dir_path = args.output
-        ui: UI = UI(args.password)
-        decode(ui)
+        encode(ui) if args.command == "encode" else decode(ui)
 
 if __name__ == "__main__":
     main()
