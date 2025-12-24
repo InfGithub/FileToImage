@@ -1,4 +1,4 @@
-import tkinter as tk, numpy as np, argparse
+import tkinter as tk, numpy as np
 from io import BytesIO
 from os import path, urandom
 from PIL import Image, ImageTk, ImageFile
@@ -6,6 +6,7 @@ from math import ceil, sqrt
 from base64 import b64decode
 from typing import TypedDict
 from hashlib import md5 as md5_checksum, sha256
+from argparse import ArgumentParser
 from threading import Thread
 from tkinter.filedialog import askdirectory, askopenfilename
 
@@ -381,7 +382,7 @@ class ArgsType(TypedDict, total=False):
     password: str
 
 def main():
-    parser = argparse.ArgumentParser(description="图片文件互转，使用哈希加密，向量化加速。")
+    parser = ArgumentParser(description="图片文件互转，使用哈希加密，向量化加速。")
     subparsers = parser.add_subparsers(dest="command")
     
     encode_parser = subparsers.add_parser("encode")
