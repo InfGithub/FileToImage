@@ -4,7 +4,7 @@ from os import path, urandom
 from PIL import Image, ImageTk, ImageFile
 from math import ceil, sqrt
 from base64 import b64decode
-from typing import Optional, TypedDict
+from typing import TypedDict
 from hashlib import md5 as md5_checksum, sha256
 from threading import Thread
 from tkinter.filedialog import askdirectory, askopenfilename
