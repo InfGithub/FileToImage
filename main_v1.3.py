@@ -405,7 +405,10 @@ def main():
         if args.output:
             Config.dir_path = args.output
         ui: UI = UI(args.password)
-        encode(ui) if args.command == "encode" else decode(ui)
+        if args.command == "encode":
+            encode(ui)
+        elif args.command == "decode":
+            decode(ui)
 
 if __name__ == "__main__":
     main()
