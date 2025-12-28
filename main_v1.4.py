@@ -119,7 +119,7 @@ class GUI(UI):
         tk.Button(self.root, text="选择文件", command=get_file_path).place(x=10, y=40)
         tk.Button(self.root, text="选择目录", command=get_dir_path).place(x=10, y=80)
         tk.Button(self.root, text="编码", command=lambda: Thread(target=encode, args=(self,)).start()).place(x=80, y=40)
-        tk.Button(self.root, text="解码", command=lambda: Thread(target=decode, args=(self,)).start()).place(x=80, y=80)
+        tk.Button(self.root, text="解码", command=lambda: Thread(target=self.decode_data, args=()).start()).place(x=80, y=80)
 
         self.loading_text = tk.Label(self.root)
         self.loading_text.place(x=10, y=115)
@@ -149,6 +149,11 @@ class GUI(UI):
 
     def run(self):
         self.root.mainloop()
+
+    def decode_data(self):
+        decoder: Decoder = Decoder()
+        decoder.decode(self)
+        
 
 def get_dir_path():
     Config.dir_path = path.normpath(askdirectory())
@@ -276,56 +281,69 @@ def encode(ui: UI):
     except Exception as e:
         ui.set_loading_info(f"编码错误：{e}")
 
-def decode(ui: UI):
-    ui.set_tooltip_info("")
-    password: str = ui.get_password()
+class Decoder:
+    def __init__(self):
+        ...
+    def decode(self, ui: UI):
+        ui.set_tooltip_info("")
+        password: str = ui.get_password()
 
-    if not password.isascii():
-        ui.set_loading_info("错误：密钥不得包含非ASCII字符。")
-        return
+        if not password.isascii():
+            ui.set_loading_info("错误：密钥不得包含非ASCII字符。")
+            return
 
-    ui.set_loading_info("运行进度：正在读取文件。")
+        ui.set_loading_info("运行进度：正在读取文件。")
 
-    if Config.file_path is None:
-        ui.set_loading_info("错误：未指定文件。")
-        return
-    
-    if not path.exists(Config.file_path):
-        ui.set_loading_info(f"错误：{Config.file_path}不存在。")
-        return
-
-    if Config.dir_path is None:
-        ui.set_loading_info("错误：未指定目录。")
-        return
-    
-    if not path.exists(Config.dir_path):
-        ui.set_loading_info(f"错误：{Config.dir_path}不存在。")
-        return
-    
-    try:
-        image: Image.Image = Image.open(Config.file_path)
-    except Exception as e:
-        ui.set_loading_info(f"文件错误：{e}")
-        return
-
-    try:
-        ui.set_loading_info("运行进度：正在还原数据。")
-        rgba_array: np.ndarray = np.array(image.convert("RGBA"), dtype=np.uint8)
-        file_data_flat_arr: np.ndarray = rgba_array.ravel()
-
-        ui.set_loading_info("运行进度：正在解密数据。")
-        file_data_flat_arr = decryption(
-            password=password.encode("ascii"),
-            data=file_data_flat_arr, chunk_size=1048576
-        )
-
-        file_data_full: bytes = file_data_flat_arr.tobytes()
-        if not file_data_full[0:3] == bytes(Config.author):
-            ui.set_loading_info("错误：文件非本程序编码。")
+        if Config.file_path is None:
+            ui.set_loading_info("错误：未指定文件。")
             return
         
-        ui.set_loading_info("运行进度：正在解析数据。")
-        version: tuple[int, int] = tuple(file_data_full[3:5])
+        if not path.exists(Config.file_path):
+            ui.set_loading_info(f"错误：{Config.file_path}不存在。")
+            return
+
+        if Config.dir_path is None:
+            ui.set_loading_info("错误：未指定目录。")
+            return
+        
+        if not path.exists(Config.dir_path):
+            ui.set_loading_info(f"错误：{Config.dir_path}不存在。")
+            return
+        
+        try:
+            image: Image.Image = Image.open(Config.file_path)
+        except Exception as e:
+            ui.set_loading_info(f"文件错误：{e}")
+            return
+
+        try:
+            ui.set_loading_info("运行进度：正在还原数据。")
+            rgba_array: np.ndarray = np.array(image.convert("RGBA"), dtype=np.uint8)
+            file_data_flat_arr: np.ndarray = rgba_array.ravel()
+
+            ui.set_loading_info("运行进度：正在解密数据。")
+            file_data_flat_arr = decryption(
+                password=password.encode("ascii"),
+                data=file_data_flat_arr, chunk_size=1048576
+            )
+
+            file_data_full: bytes = file_data_flat_arr.tobytes()
+            if not file_data_full[0:3] == bytes(Config.author):
+                ui.set_loading_info("错误：文件非本程序编码。")
+                return
+            
+            ui.set_loading_info("运行进度：正在解析数据。")
+            version: tuple[int, int] = tuple(file_data_full[3:5])
+            
+            if version == (1, 4):
+                self._decode_v1_4(ui, file_data_full)
+            else:
+                ui.set_loading_info(f"版本错误：需求v{get_version_text(version)}")
+
+        except Exception as e:
+            ui.set_loading_info(f"解码错误：{e}")
+
+    def _decode_v1_4(self, ui: UI, file_data_full: bytes):
         filename_data_length: int = int.from_bytes(file_data_full[261:262])
         filename: str = file_data_full[261-filename_data_length:261].decode("utf-8")
         md5_checksum_result: bytes = file_data_full[262:278]
@@ -352,8 +370,7 @@ def decode(ui: UI):
         upper_file_path: str = get_path_with_upper_drive(save_file_path)
         ui.set_loading_info(f"解码完成。保存于{upper_file_path}")
         ui.set_tooltip_info(upper_file_path)
-    except Exception as e:
-        ui.set_loading_info(f"编码错误：{e}")
+
 
 class Config:
     version: tuple[int, int] = (1, 4)
@@ -374,7 +391,6 @@ a2uI19f1lJS0nSufWWhUvLAAAAAElFTkSuQmCC"
 
     dir_path: str = path.dirname(path.abspath(__file__))
     file_path: str = None
-    spliter: bytes = "<<<INF>>>".encode("utf-8")
     author: bytes = "INF".encode("utf-8")
 
 class ArgsType(TypedDict, total=False):
@@ -410,7 +426,8 @@ def main():
         if args.command == "encode":
             encode(ui)
         elif args.command == "decode":
-            decode(ui)
+            decoder: Decoder = Decoder()
+            decoder.decode(ui)
 
 if __name__ == "__main__":
     main()
