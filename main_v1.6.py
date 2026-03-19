@@ -405,14 +405,14 @@ def decryption(password: bytes, data: np.ndarray, chunk_size: int = 1048576) -> 
     return data
 
 def encryption_v1_6(password: bytes, data: np.ndarray, chunk_size: int = 1048576) -> np.ndarray:
-
-    salt = urandom(16)
+    salt = urandom(16)  # bytes 类型
     salt_array = np.frombuffer(salt, dtype=np.uint8)
 
     result = [salt_array, data]
 
     for index in range(0, data.size, chunk_size):
         end = min(index + chunk_size, data.size)
+        # password (bytes) + salt (bytes) + index (bytes)
         chunk_context = password + salt + index.to_bytes(8, 'big')
         chunk_keystream = shake_256(chunk_context).digest(end - index)
         key_stream = np.frombuffer(chunk_keystream, dtype=np.uint8)
@@ -421,11 +421,13 @@ def encryption_v1_6(password: bytes, data: np.ndarray, chunk_size: int = 1048576
     return np.concatenate(result)
 
 def decryption_v1_6(password: bytes, data: np.ndarray, chunk_size: int = 1048576) -> np.ndarray:
-    salt, data = data[:16], data[16:]
+    salt_array, data = data[:16], data[16:]
+    salt_bytes = salt_array.tobytes()  # 转回 bytes
 
     for index in range(0, data.size, chunk_size):
         end = min(index + chunk_size, data.size)
-        chunk_context = password + salt + index.to_bytes(8, 'big')
+        # password (bytes) + salt_bytes (bytes) + index (bytes)
+        chunk_context = password + salt_bytes + index.to_bytes(8, 'big')
         chunk_keystream = shake_256(chunk_context).digest(end - index)
         key_stream = np.frombuffer(chunk_keystream, dtype=np.uint8)
         data[index:end] = np.bitwise_xor(data[index:end], key_stream)
