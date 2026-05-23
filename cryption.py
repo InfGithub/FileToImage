@@ -6,7 +6,7 @@ def cryption(
     password: bytes,
     buffer: np.ndarray,
     salt_buffer: np.ndarray
-):
+) -> None:
     base_sponge = shake_256()
     base_sponge.update(password)
     base_sponge.update(salt_buffer)
@@ -22,7 +22,7 @@ def encryption(
     buffer: np.ndarray,
     salt_buffer: np.ndarray,
     mac_buffer: np.ndarray
-):
+) -> None:
     salt: bytes = urandom(32)
     salt_buffer[:] = memoryview(salt)
 
@@ -39,7 +39,7 @@ def decryption(
     buffer: np.ndarray,
     salt_buffer: np.ndarray,
     mac_buffer: np.ndarray
-):
+) -> None:
     mac = sha256()
     mac.update(password)
     mac.update(buffer)
