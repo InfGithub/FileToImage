@@ -130,6 +130,7 @@ class UI:
             encode(ui=self) # TODO
         except Exception as err:
             self.set_loading_info(f"异常：{err}")
+            self.set_tooltip_info(f"{err}")
         finally:
             self.processing = False
             self.root.after(0, lambda: self._unlock_buttons())
@@ -144,6 +145,7 @@ class UI:
             decode(ui=self) # TODO
         except Exception as err:
             self.set_loading_info(f"异常：{err}")
+            self.set_tooltip_info(f"{err}")
         finally:
             self.processing = False
             self.root.after(0, lambda: self._unlock_buttons())

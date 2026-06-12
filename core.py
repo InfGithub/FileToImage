@@ -139,7 +139,9 @@ def encode(ui: "UI") -> None:
 
     ui.set_loading_info("运行进度：正在映射图像。")
     result: Image.Image = Image.fromarray(
-        np.frombuffer(data).reshape(
+        np.frombuffer(
+            data, dtype=np.uint8
+        ).reshape(
             side_length, side_length, 4
             ),
         mode="RGBA"
