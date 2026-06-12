@@ -3,5 +3,5 @@
 /latest.log
 /*.old
 /*.png
-old/
-__pycache__/
+/old
+/__pycache__
