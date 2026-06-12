@@ -21,7 +21,7 @@ def get_square_ge(n: int) -> int:
     m: int = isqrt(n)
     if m * m < n:
         m += 1
-    return m * m
+    return m
 
 def get_upper_drive(file_path: str) -> str:
     drive, tail = path.splitdrive(file_path)

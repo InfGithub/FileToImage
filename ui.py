@@ -43,14 +43,14 @@ class UI:
 
     def set_file_path(self) -> None:
         result: str = path.normpath(askopenfilename())
-        if self.file_path and self.file_path != ".":
+        if result and result != ".":
             self.file_path = result
             self.set_loading_info(f"文件：{path.basename(self.file_path)}")
             self.set_tooltip_info(self.file_path)
 
     def set_dir_path(self) -> None:
         result: str = path.normpath(askdirectory())
-        if self.dir_path and self.dir_path != ".":
+        if result and result != ".":
             self.dir_path = result
             self.set_loading_info(f"目录：{self.dir_path}")
 
