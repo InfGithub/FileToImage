@@ -1,6 +1,7 @@
 from os import path
 from math import isqrt
 from typing import TYPE_CHECKING
+from unicodedata import normalize, category
 
 import numpy as np
 from PIL import Image
@@ -27,12 +28,24 @@ def get_upper_drive(file_path: str) -> str:
     drive, tail = path.splitdrive(file_path)
     return drive.upper() + tail if drive else file_path
 
+def safe2utf8(data: bytes, max_len: int) -> bytes:
+    if len(data) <= max_len:
+        return data
+    for i in range(max_len, -1, -1):
+        if data[i] & 0xC0 != 0x80:
+            return data[:i]
+    return b""
+
 def encode(ui: "UI") -> None:
     ui.set_tooltip_info("")
     password: str = ui.get_password()
 
-    if not password.isascii():
-        ui.set_loading_info("错误：密钥不得包含非ASCII字符。")
+    if not password.isprintable():
+        ui.set_loading_info("错误：密码包含不可打印字符。")
+        return
+
+    if any(category(char) in ("Cf",) for char in password):
+        ui.set_loading_info("错误：密码包含不可见字符。")
         return
 
     ui.set_loading_info("运行进度：正在读取文件。")
@@ -79,7 +92,10 @@ def encode(ui: "UI") -> None:
 
     format_stub_code: bytes = bytes((0, 0, 0, compress_types.index(compress_type))) # 4 byte
     b_compressed_file_length: bytes = compressed_file_length.to_bytes(length=8)
-    b_filename: bytes = path.basename(ui.file_path).encode("ascii")[:256].rjust(256, b"\x00")  # 256 byte
+    b_filename: bytes = safe2utf8(
+        path.basename(ui.file_path).encode("utf-8"),
+        256
+    ).rjust(256, b"\x00")  # 256 byte
 
     # code 4b + len 8b + name 256b + salt + sha = 332
     # [code4][len8][name256][salt32][sha32][data]
@@ -98,7 +114,7 @@ def encode(ui: "UI") -> None:
     if len(data) < target_bytes:
         data.extend(b"\x00" * (target_bytes - len(data)))
 
-    b_password: bytes = password.encode("ascii")
+    b_password: bytes = normalize("NFC", password).encode("utf-8")
     salt_buffer: np.ndarray = np.frombuffer(
         data[268:300], # 268 + 32 = 300
         dtype=np.uint8
