@@ -97,35 +97,44 @@ def encode(ui: "UI") -> None:
         256
     ).rjust(256, b"\x00")  # 256 byte
 
-    # code 4b + len 8b + name 256b + salt + sha = 332
-    # [code4][len8][name256][salt32][sha32][data]
-    head_length: int = 4 + 8 + 256 + 32 + 32
+    # code 4bb + salt + sha + len 8 + name 256b = 332
+    # [code4][salt32][sha32][len8][name256][data]
+    head_length: int = 4 + 32 + 32 + 8 + 256
     data_length: int = head_length + compressed_file_length
     side_length: int = get_square_ge((data_length + 3)  // 4)
 
     b_compressed_file[:0] = bytearray(head_length)
     data: bytearray = b_compressed_file
+    data_length: int = len(data)
 
     data[0:4] = format_stub_code
-    data[4:12] = b_compressed_file_length # 4 + 8 = 12
-    data[12:268] = b_filename # 12 + 256 = 268
 
     target_bytes: int = side_length * side_length * 4
-    if len(data) < target_bytes:
-        data.extend(b"\x00" * (target_bytes - len(data)))
+    if data_length < target_bytes:
+        data.extend(b"\x00" * (target_bytes - data_length))
 
     b_password: bytes = normalize("NFC", password).encode("utf-8")
     salt_buffer: np.ndarray = np.frombuffer(
-        data[268:300], # 268 + 32 = 300
-        dtype=np.uint8
+        data,
+        dtype=np.uint8,
+        count=32,
+        offset=4 # 4 + 32 = 36
     )
     sha_buffer: np.ndarray = np.frombuffer(
-        data[300:332], # 300 + 32 = 332
-        dtype=np.uint8
+        data,
+        dtype=np.uint8,
+        count=32,
+        offset=36 # 36 + 32 = 68
     )
+
+    data[68:76] = b_compressed_file_length # 68 + 8 = 76
+    data[76:332] = b_filename # 76 + 256 = 332
+
     buffer: np.ndarray = np.frombuffer(
-        data[332:],
-        dtype=np.uint8
+        data,
+        dtype=np.uint8,
+        count=len(data) - 68,
+        offset=68
     )
 
     ui.set_loading_info("运行进度：正在加密数据。")
@@ -143,7 +152,7 @@ def encode(ui: "UI") -> None:
             data, dtype=np.uint8
         ).reshape(
             side_length, side_length, 4
-            ),
+        ),
         mode="RGBA"
     )
 
