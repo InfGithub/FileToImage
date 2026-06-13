@@ -1,6 +1,5 @@
 from os import path
 from math import isqrt
-from typing import TYPE_CHECKING
 from unicodedata import normalize, category
 
 import numpy as np
@@ -13,10 +12,8 @@ from compress import (
 )
 
 from cryption import encryption, decryption
-from data import compress_types
-
-if TYPE_CHECKING:
-    from ui import UI
+from data import compress_types, version
+from util import UI
 
 def get_square_ge(n: int) -> int:
     m: int = isqrt(n)
@@ -36,7 +33,7 @@ def safe2utf8(data: bytes, max_len: int) -> bytes:
             return data[:i]
     return b""
 
-def encode(ui: "UI") -> None:
+def encode(ui: UI) -> None:
     ui.set_tooltip_info("")
     password: str = ui.get_password()
 
@@ -90,12 +87,12 @@ def encode(ui: "UI") -> None:
     ui.set_loading_info("运行进度：正在组织信息。")
     compressed_file_length: int = len(b_compressed_file)
 
-    format_stub_code: bytes = bytes((0, 0, 0, compress_types.index(compress_type))) # 4 byte
+    format_stub_code: bytes = bytes((*version, compress_types.index(compress_type))) # 4 byte
     b_compressed_file_length: bytes = compressed_file_length.to_bytes(length=8)
     b_filename: bytes = safe2utf8(
         path.basename(ui.file_path).encode("utf-8"),
         256
-    ).rjust(256, b"\x00")  # 256 byte
+    ).ljust(256, b"\x00")  # 256 byte
 
     # code 4bb + salt + sha + len 8 + name 256b = 332
     # [code4][salt32][sha32][len8][name256][data]
@@ -172,5 +169,112 @@ def encode(ui: "UI") -> None:
     ui.set_loading_info(f"编码完成。保存于{upper_file_path}")
     ui.set_tooltip_info(upper_file_path)
 
-def decode(ui: "UI") -> None:
-    ...
+class Decoder:
+    def decode(self, ui: UI) -> None:
+        ui.set_tooltip_info("")
+        password: str = ui.get_password()
+
+        if not password.isprintable():
+            ui.set_loading_info("错误：密码包含不可打印字符。")
+            return
+
+        if any(category(char) in ("Cf",) for char in password):
+            ui.set_loading_info("错误：密码包含不可见字符。")
+            return
+
+        ui.set_loading_info("运行进度：正在读取文件。")
+
+        if not ui.file_path:
+            ui.set_loading_info("错误：未指定文件。")
+            return
+        
+        if not path.exists(ui.file_path):
+            ui.set_loading_info(f"错误：{ui.file_path}不存在。")
+            return
+        
+        if not ui.dir_path:
+            ui.set_loading_info("错误：未指定目录。")
+            return
+        
+        if not path.exists(ui.dir_path):
+            ui.set_loading_info(f"错误：{ui.dir_path}不存在。")
+            return
+
+        try:
+            image: Image.Image = Image.open(ui.file_path)
+        except Exception as e:
+            ui.set_loading_info(f"文件错误：{e}")
+            return
+
+        ui.set_loading_info("运行进度：正在还原数据。")
+        data: np.ndarray = np.array(image.convert("RGBA"), dtype=np.uint8).ravel()
+        format_stub_code: bytes = data.data[:4].tobytes() # 4 byte
+
+        if format_stub_code[0:3] == b"\x00\x00\x00":
+            return self._decode_x000000(ui, data)
+        
+        ui.set_loading_info(f"不受支持的版本：{format_stub_code.hex()}")
+
+    def _decode_x000000(self, ui: UI, data: np.ndarray) -> None:
+        ui.set_loading_info("运行进度：正在解密数据。")
+
+        salt: np.ndarray = np.frombuffer(
+            data,
+            dtype=np.uint8,
+            count=32,
+            offset=4
+        )
+        mac: np.ndarray = np.frombuffer(
+            data,
+            dtype=np.uint8, 
+            count=32,
+            offset=36
+        )
+        buffer: np.ndarray = np.frombuffer(
+            data,
+            dtype=np.uint8,
+            count=len(data) - 68,
+            offset=68
+        )
+
+        b_password: bytes = normalize("NFC", ui.get_password()).encode("utf-8")
+        try:
+            decryption(b_password, buffer, salt, mac)
+        except ValueError as e:
+            ui.set_loading_info(f"{e}")
+            ui.set_tooltip_info(f"{e}")
+            return
+        
+        b_buffer: memoryview = buffer.data
+        compressed_file_length: int = int.from_bytes(b_buffer[:8])
+        filename: str = bytes(b_buffer[8:264]).decode("utf-8").rstrip("\x00")
+
+        b_compressed_data: memoryview = b_buffer[264:264 + compressed_file_length]
+        compress_type_index: int = data[3]  # format_stub_code[3]
+        if compress_type_index == 0:
+            file_data: bytearray = bytearray(b_compressed_data)
+        elif compress_type_index == 1:
+            file_data: bytearray = zlib_decompress(b_compressed_data)
+        elif compress_type_index == 2:
+            file_data: bytearray = bz2_decompress(b_compressed_data)
+        elif compress_type_index == 3:
+            file_data: bytearray = lzma_decompress(b_compressed_data)
+        else:
+            ui.set_loading_info("错误：不受支持的压缩方案。")
+            return
+
+        ui.set_loading_info("运行进度：正在保存文件。")
+        save_file_path: str = path.join(ui.dir_path, filename) # type: ignore
+        try:
+            with open(save_file_path, mode="wb") as f:
+                f.write(file_data)
+        except Exception as e:
+            ui.set_loading_info(f"文件错误：{e}")
+            return
+        upper_file_path: str = get_upper_drive(save_file_path)
+        ui.set_loading_info(f"解码完成。保存于{upper_file_path}")
+        ui.set_tooltip_info(upper_file_path)
+
+def decode(ui: UI) -> None:
+    decoder: Decoder = Decoder()
+    decoder.decode(ui)

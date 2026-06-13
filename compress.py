@@ -27,7 +27,7 @@ def zlib_compress(data: bytearray, chunk_size: int = 1048576, level: int = 6) ->
 
     return bytearray(buffer.getvalue())
 
-def zlib_decompress(data: bytearray, chunk_size: int = 1048576) -> bytearray:
+def zlib_decompress(data, chunk_size: int = 1048576) -> bytearray:
     import zlib
 
     if not data:
@@ -81,7 +81,7 @@ def bz2_compress(data: bytearray, chunk_size: int = 1048576, level: int = 6) -> 
 
     return bytearray(buffer.getvalue())
 
-def bz2_decompress(data: bytearray, chunk_size: int = 1048576) -> bytearray:
+def bz2_decompress(data, chunk_size: int = 1048576) -> bytearray:
     import bz2
 
     if not data:
@@ -135,7 +135,7 @@ def lzma_compress(data: bytearray, chunk_size: int = 1048576, level: int = 6) ->
 
     return bytearray(buffer.getvalue())
 
-def lzma_decompress(data: bytearray, chunk_size: int = 1048576) -> bytearray:
+def lzma_decompress(data, chunk_size: int = 1048576) -> bytearray:
     import lzma
 
     if not data:

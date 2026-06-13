@@ -5,3 +5,6 @@
 /*.png
 /old
 /__pycache__
+/file2img.py
+/*.jpg
+*.pyc

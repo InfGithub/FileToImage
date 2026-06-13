@@ -9,12 +9,13 @@ from io import BytesIO
 from os import path
 from base64 import b64decode
 from threading import Thread
+from typing import Optional
 
 from data import icon_b64, workspace, CompressType, compress_types
-from util import Tooltip
+from util import Tooltip, UI
 from core import encode, decode
 
-class UI:
+class GUI(UI):
     def __init__(self) -> None:
         self.root = tk.Tk()
         self.root.title("FileToImage")
@@ -22,8 +23,8 @@ class UI:
         self.root.resizable(False, False)
         self.root.eval("tk::PlaceWindow . center")
 
-        self.file_path: str = ""
-        self.dir_path: str = workspace
+        self._file_path: str = ""
+        self._dir_path: str = workspace
         self.processing: bool = False
         self.compress: dict[CompressType, int] = {
             "raw": 2,
@@ -41,18 +42,72 @@ class UI:
 
         self.set_loading_info("喵喵喵~")
 
+    @property
+    def file_path(self) -> Optional[str]:
+        return self._file_path
+
+    @file_path.setter
+    def file_path(self, value: str) -> None:
+        self._file_path = value
+
+    @property
+    def dir_path(self) -> Optional[str]:
+        return self._dir_path
+
+    @dir_path.setter
+    def dir_path(self, value: str) -> None:
+        self._dir_path = value
+
     def set_file_path(self) -> None:
         result: str = path.normpath(askopenfilename())
         if result and result != ".":
             self.file_path = result
-            self.set_loading_info(f"文件：{path.basename(self.file_path)}")
-            self.set_tooltip_info(self.file_path)
+            self.set_loading_info(f"文件：{path.basename(result)}")
+            self.set_tooltip_info(result)
 
     def set_dir_path(self) -> None:
         result: str = path.normpath(askdirectory())
         if result and result != ".":
             self.dir_path = result
             self.set_loading_info(f"目录：{self.dir_path}")
+
+    def p_encode(self) -> None:
+        if self.processing:
+            return
+        
+        self.processing = True
+        self.root.after(0, lambda: self._lock_buttons())
+        try:
+            encode(ui=self) # TODO
+        except Exception as err:
+            self.set_loading_info(f"异常：{err}")
+            self.set_tooltip_info(f"{err}")
+        finally:
+            self.processing = False
+            self.root.after(0, lambda: self._unlock_buttons())
+
+    def p_decode(self) -> None:
+        if self.processing:
+            return
+        
+        self.processing = True
+        self.root.after(0, lambda: self._lock_buttons())
+        try:
+            decode(ui=self) # TODO
+        except Exception as err:
+            self.set_loading_info(f"异常：{err}")
+            self.set_tooltip_info(f"{err}")
+        finally:
+            self.processing = False
+            self.root.after(0, lambda: self._unlock_buttons())
+
+    def compress_type_selected(self, event) -> None:
+        compress_type: str = self.compress_type_combobox.get()
+        self.compress_level_combobox.set(self.compress[compress_type]) # pyright: ignore[reportArgumentType]
+
+    def compress_level_selected(self, event) -> None:
+        compress_type: str = self.compress_type_combobox.get()
+        self.compress[compress_type] = int(self.compress_level_combobox.get()) # pyright: ignore[reportArgumentType]
 
     def ui_init(self) -> None:
         tk.Label(self.root, text="Author：INF").place(x=10, y=5)
@@ -120,35 +175,9 @@ class UI:
     def get_password(self) -> str:
         return self.password_entry.get()
 
-    def p_encode(self) -> None:
-        if self.processing:
-            return
-        
-        self.processing = True
-        self.root.after(0, lambda: self._lock_buttons())
-        try:
-            encode(ui=self) # TODO
-        except Exception as err:
-            self.set_loading_info(f"异常：{err}")
-            self.set_tooltip_info(f"{err}")
-        finally:
-            self.processing = False
-            self.root.after(0, lambda: self._unlock_buttons())
-
-    def p_decode(self) -> None:
-        if self.processing:
-            return
-        
-        self.processing = True
-        self.root.after(0, lambda: self._lock_buttons())
-        try:
-            decode(ui=self) # TODO
-        except Exception as err:
-            self.set_loading_info(f"异常：{err}")
-            self.set_tooltip_info(f"{err}")
-        finally:
-            self.processing = False
-            self.root.after(0, lambda: self._unlock_buttons())
+    def get_compress_settings(self) -> tuple[CompressType, int]:
+        compress_type: CompressType = self.compress_type_combobox.get() # pyright: ignore[reportAssignmentType]
+        return compress_type, self.compress[compress_type]
 
     def _lock_buttons(self) -> None:
         self.encode_button.config(state="disabled")
@@ -162,18 +191,37 @@ class UI:
         self.file_button.config(state="normal")
         self.dir_button.config(state="normal")
 
+class CLI(UI):
+    def __init__(
+        self,
+        password: str,
+        file_path: str = "",
+        dir_path: str = "",
+        compress_type: CompressType = "raw",
+        compress_level: int = 2
+    ) -> None:
+        self._password = password
+        self._file_path = file_path
+        self._dir_path = dir_path or workspace
+        self._compress_type = compress_type
+        self._compress_level = compress_level
+
+    def get_password(self) -> str:
+        return self._password
+
+    def set_loading_info(self, text: str) -> None:
+        print(f"[INFO] {text}")
+
+    def set_tooltip_info(self, text: str) -> None:
+        print(f"[TIP] {text}")
+
     def get_compress_settings(self) -> tuple[CompressType, int]:
-        compress_type: CompressType = self.compress_type_combobox.get() # pyright: ignore[reportAssignmentType]
-        return compress_type, self.compress[compress_type]
+        return self._compress_type, self._compress_level # type: ignore[assignment]
 
-    def compress_type_selected(self, event):
-        compress_type: str = self.compress_type_combobox.get()
-        self.compress_level_combobox.set(self.compress[compress_type]) # pyright: ignore[reportArgumentType]
+    @property
+    def file_path(self) -> Optional[str]:
+        return self._file_path
 
-    def compress_level_selected(self, event):
-        compress_type: str = self.compress_type_combobox.get()
-        self.compress[compress_type] = int(self.compress_level_combobox.get()) # pyright: ignore[reportArgumentType]
-
-if __name__ == "__main__":
-    ui = UI()
-    ui.run()
+    @property
+    def dir_path(self) -> Optional[str]:
+        return self._dir_path

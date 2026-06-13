@@ -1,6 +1,31 @@
 import tkinter as tk
+from abc import ABC, abstractmethod
 from typing import Optional
 
+from data import CompressType
+
+class UI(ABC):
+    @abstractmethod
+    def get_password(self) -> str:
+        ...
+    @abstractmethod
+    def set_loading_info(self, text: str) -> None:
+        ...
+    @abstractmethod
+    def set_tooltip_info(self, text: str) -> None:
+        ...
+    @abstractmethod
+    def get_compress_settings(self) -> tuple[CompressType, int]:
+        """返回 (压缩类型, 压缩级别)"""
+        ...
+    @property
+    @abstractmethod
+    def file_path(self) -> Optional[str]:
+        ...
+    @property
+    @abstractmethod
+    def dir_path(self) -> Optional[str]:
+        ...
 
 class Tooltip:
     OFFSET_X: int = 20

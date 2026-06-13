@@ -20,3 +20,5 @@ workspace: str = "./"
 
 type CompressType = Literal["raw", "zlib", "bz2", "lzma"]
 compress_types: list[CompressType] = ["raw", "zlib", "bz2", "lzma"]
+
+version: tuple[int, int, int] = (0, 0, 0)
